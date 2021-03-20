@@ -35,12 +35,6 @@ namespace Client
                 {
                     logger.LogDebug("API call succeeded");
                     var responseString = await response.Content.ReadAsStringAsync();
-
-                    //fix invalid json response from API
-                    //delete once API is fixed
-                    responseString = responseString.Replace("\"id\": 0", "\"id\": 0,");
-                    responseString = responseString.Replace("\"petId\": 0", "\"petId\": 0,");
-
                     var orderResponse = JsonSerializer.Deserialize<OrderResponse>(responseString);
                     return orderResponse;
                 }
