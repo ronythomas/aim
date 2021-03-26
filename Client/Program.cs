@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
 using System;
 using System.Threading.Tasks;
 
@@ -23,11 +22,25 @@ namespace Client
             //configure logging
             var logger = serviceProvider.GetService<ILoggerFactory>().CreateLogger<Program>();
             logger.LogDebug("starting application");
+            try
+            {
+                var service = serviceProvider.GetService<IOrderService>();
+                var response = await service.GetOrder();
 
-            var service = serviceProvider.GetService<IOrderService>();
-            var orderResponse = await service.GetOrder();
+                if (response.IsSuccess)
+                {
+                    logger.LogInformation($"ship date is {response.Result.ShipDate}");
+                }
+                else
+                {
+                    logger.LogError($"unable to find ship date. reason: {response.ErrorMessage}");
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "error while accessing order service");
+            }
 
-            logger.LogInformation($"ship date is {orderResponse.ShipDate}");
             logger.LogDebug("stopping application!");
         }
     }

@@ -8,48 +8,52 @@ namespace Client
 {
     public interface IOrderService
     {
-        Task<OrderResponse> GetOrder();
+        Task<ApiResponse<Order>> GetOrder();
     }
 
     public class OrderService : IOrderService
     {
-        private readonly IHttpClientFactory clientFactory;
+        private readonly IHttpClientFactory httpClientFactory;
         private readonly ILogger<OrderService> logger;
 
-        public OrderService(IHttpClientFactory clientFactory, ILogger<OrderService> logger)
+        public OrderService(IHttpClientFactory httpClientFactory, ILogger<OrderService> logger)
         {
-            this.clientFactory = clientFactory;
-            this.logger = logger;
+            this.httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<OrderResponse> GetOrder()
+        public async Task<ApiResponse<Order>> GetOrder()
         {
+            var httpClient = httpClientFactory.CreateClient("aim_api");
+            logger.LogDebug("calling API");
+
             try
             {
-                var httpClient = clientFactory.CreateClient("aim_api");
-
-                logger.LogDebug("calling API");
                 var response = await httpClient.GetAsync("service");
 
                 if (response.IsSuccessStatusCode)
                 {
                     logger.LogDebug("API call succeeded");
                     var responseString = await response.Content.ReadAsStringAsync();
-                    var orderResponse = JsonSerializer.Deserialize<OrderResponse>(responseString);
-                    return orderResponse;
-                }
-                else
-                {
-                    var message = await response.Content.ReadAsStringAsync();
-                    logger.LogError(message);
 
-                    throw new HttpRequestException(message);
+                    if (string.IsNullOrEmpty(responseString))
+                    {
+                        return new ApiResponse<Order>(false, null);
+                    }
+
+                    var order = JsonSerializer.Deserialize<Order>(responseString);
+                    return new ApiResponse<Order>(order?.ShipDate != null, order);
                 }
+
+                var message = response.ReasonPhrase;
+                logger.LogCritical(message);
+                return new ApiResponse<Order>(false, null, message);
+
             }
             catch (Exception exception)
             {
                 logger.LogError(exception, "exception on communicating with API");
-                throw;
+                return new ApiResponse<Order>(false, null, exception.Message);
             }
         }
     }

@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace Client
 {
-    public class OrderResponse
+    public class Order
     {
         [JsonPropertyName("shipDate")]
-        public DateTime ShipDate { get; set; }
+        public DateTime? ShipDate { get; set; }
     }
 }
